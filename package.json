@@ -1,0 +1,124 @@
+{
+  "name": "cpa-quota-status-bar",
+  "displayName": "CPA Quota Status Bar",
+  "description": "在 VS Code 状态栏显示 CPA Manager Plus 中 Codex、Gemini CLI、Claude Code 账号配额",
+  "version": "0.1.0",
+  "publisher": "shinganeuler",
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shinganEuler/cpaQuota.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shinganEuler/cpaQuota/issues"
+  },
+  "homepage": "https://github.com/shinganEuler/cpaQuota",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "cpa",
+    "quota",
+    "cpa-manager-plus",
+    "codex",
+    "gemini",
+    "claude",
+    "statusbar",
+    "配额"
+  ],
+  "galleryBanner": {
+    "color": "#0c141d",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:cpaQuota.refresh",
+    "onCommand:cpaQuota.showDetails"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cpaQuota.refresh",
+        "title": "CPA Quota: 刷新配额",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "cpaQuota.showDetails",
+        "title": "CPA Quota: 显示重置时间"
+      }
+    ],
+    "configuration": {
+      "title": "CPA Quota",
+      "properties": {
+        "cpaQuota.managerBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:8317",
+          "description": "CPA Manager Plus 或 CPA Management API 地址，例如 http://localhost:8317。"
+        },
+        "cpaQuota.managementKey": {
+          "type": "string",
+          "default": "",
+          "description": "CPA Manager Plus admin key 或 CPA Management Key，会作为 Bearer token 发送。"
+        },
+        "cpaQuota.providerVisibility": {
+          "type": "object",
+          "default": {
+            "codex": true,
+            "gemini": true,
+            "claude": true
+          },
+          "properties": {
+            "codex": {
+              "type": "boolean",
+              "default": true,
+              "description": "是否显示 Codex 配额。"
+            },
+            "gemini": {
+              "type": "boolean",
+              "default": true,
+              "description": "是否显示 Gemini CLI 配额。"
+            },
+            "claude": {
+              "type": "boolean",
+              "default": true,
+              "description": "是否显示 Claude Code 配额。"
+            }
+          },
+          "description": "状态栏显示的厂商。"
+        },
+        "cpaQuota.interval": {
+          "type": "number",
+          "default": 3600000,
+          "minimum": 60000,
+          "description": "配额刷新间隔，单位毫秒，默认 1 小时，最小 60000。"
+        },
+        "cpaQuota.hideStatusBar": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否隐藏 CPA 配额状态栏。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node ./test/quotaService.test.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "@types/vscode": "1.74.0",
+    "@vscode/vsce": "^3.9.1",
+    "typescript": "^5.0.0"
+  },
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ]
+}
