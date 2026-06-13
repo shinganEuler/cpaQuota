@@ -25,10 +25,27 @@ export class QuotaService {
     const client = new CpaApiClient(getManagerBaseUrl());
     const visibleProviders = new Set(getVisibleProviders());
     const authFiles = await client.getAuthFiles();
-    const files = (authFiles.files ?? []).filter((file) => {
+    const allFiles = authFiles.files ?? [];
+    const files = allFiles.filter((file) => {
       const provider = normalizeProvider(file);
       return provider && visibleProviders.has(provider) && file.disabled !== true && file.unavailable !== true;
     });
+
+    if (!files.length) {
+      console.info('[cpaQuota] auth-files loaded but no visible enabled provider accounts matched', {
+        total: allFiles.length,
+        visibleProviders: Array.from(visibleProviders),
+        sample: allFiles.slice(0, 5).map((file) => ({
+          name: file.name,
+          type: file.type,
+          provider: file.provider,
+          authIndex: getAuthIndex(file),
+          normalizedProvider: normalizeProvider(file),
+          disabled: file.disabled,
+          unavailable: file.unavailable
+        }))
+      });
+    }
 
     const accountQuotas = await Promise.all(files.map((file) => this.fetchAccountQuota(client, file)));
     const summaries = getVisibleProviders().map((provider) =>

@@ -1,34 +1,37 @@
 # CPA Quota Status Bar
 
-在 VS Code 状态栏显示 CPA Manager Plus / CPA Management API 中 Codex、Gemini CLI、Claude Code 账号配额。
+Show Codex, Gemini CLI, and Claude Code quotas from CPA Manager Plus / CPA Management API in the VS Code status bar.
 
-## 功能
+## Features
 
-- 启动 VS Code 后自动刷新状态栏配额。
-- 设置里可选择显示 `codex`、`gemini`、`claude` 哪些厂商。
-- 同一厂商有多个账号时汇总显示周配额和小时配额，汇总值按可用账号剩余额度取平均。
-- 点击状态栏显示最近的周配额、小时配额重置时间，以及各账号明细。
-- 定时拉取配额，默认 `3600000` 毫秒，也就是 1 小时一次。
+- Automatically refreshes quotas after VS Code starts.
+- Lets you choose which providers to show: `codex`, `gemini`, and `claude`.
+- Aggregates multiple accounts under the same provider and shows weekly and hourly remaining quota.
+- Uses the average remaining quota across available accounts when aggregating a provider.
+- Shows `Token: <hour>/5h <week>/1w` in the status bar.
+- Shows provider and per-account reset details in the status bar tooltip.
+- Refreshes when you click the status bar item.
+- Refreshes on a timer. The default interval is `60` minutes.
 
-## 配置
+## Configuration
 
-- `cpaQuota.managerBaseUrl`: CPA Manager Plus 或 CPA Management API 地址，默认 `http://localhost:8317`。
-- `cpaQuota.managementKey`: admin key 或 CPA Management Key，会作为 `Authorization: Bearer ...` 发送。
-- `cpaQuota.providerVisibility`: 厂商显示开关。
-- `cpaQuota.interval`: 刷新间隔，默认 1 小时，最小 1 分钟。
-- `cpaQuota.hideStatusBar`: 隐藏状态栏。
+- `cpaQuota.managerBaseUrl`: CPA Manager Plus or CPA Management API base URL. The default is `http://localhost:8317`.
+- `cpaQuota.managementKey`: CPA Manager Plus admin key or CPA Management Key. It is sent as both `Authorization: Bearer ...` and `X-Management-Key` for compatibility.
+- `cpaQuota.providerVisibility`: Provider visibility switches.
+- `cpaQuota.interval`: Refresh interval in minutes. The default is `60`; the minimum is `1`.
+- `cpaQuota.hideStatusBar`: Hide the status bar items.
 
-## 数据来源
+## Data Source
 
-插件读取 `/auth-files` 获取账号列表，再通过 `/api-call` 使用对应 `authIndex` 代理请求：
+The extension reads `/v0/management/auth-files` to discover accounts, then calls `/v0/management/api-call` with each account's `authIndex` to proxy quota requests:
 
 - Codex: `https://chatgpt.com/backend-api/wham/usage`
 - Gemini CLI: `https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota`
 - Claude Code: `https://api.anthropic.com/api/oauth/usage`
 
-这些路径与 CPA Manager Plus 当前 quota 页面使用的调用方式保持一致。
+These endpoints match the current CPA Manager Plus quota page behavior.
 
-## 开发
+## Development
 
 ```bash
 npm install

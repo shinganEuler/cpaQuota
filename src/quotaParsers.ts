@@ -35,22 +35,43 @@ export const PROVIDER_REQUESTS: Record<ProviderId, { method: string; url: string
 };
 
 export function normalizeProvider(file: AuthFileItem): ProviderId | null {
-  const raw = normalizeString(file.type) ?? normalizeString(file.provider) ?? '';
-  const normalized = raw.toLowerCase();
-  if (normalized === 'codex') {
-    return 'codex';
-  }
-  if (normalized === 'gemini-cli' || normalized === 'gemini') {
-    return 'gemini';
-  }
-  if (normalized === 'claude') {
-    return 'claude';
+  const candidates = [
+    file.type,
+    file.provider,
+    file.service,
+    file.kind,
+    file.source,
+    file.name,
+    file.path,
+    file.fileName,
+    file.filename
+  ];
+
+  for (const candidate of candidates) {
+    const raw = normalizeString(candidate);
+    if (!raw) {
+      continue;
+    }
+    const normalized = raw.toLowerCase();
+    if (normalized === 'codex' || /(^|[^a-z])codex([^a-z]|$)/.test(normalized)) {
+      return 'codex';
+    }
+    if (
+      normalized === 'gemini-cli' ||
+      normalized === 'gemini' ||
+      /(^|[^a-z])gemini([^a-z]|$)/.test(normalized)
+    ) {
+      return 'gemini';
+    }
+    if (normalized === 'claude' || /(^|[^a-z])claude([^a-z]|$)/.test(normalized)) {
+      return 'claude';
+    }
   }
   return null;
 }
 
 export function getAuthIndex(file: AuthFileItem): string | null {
-  return normalizeString(file.authIndex ?? file.auth_index ?? file['auth-index']);
+  return normalizeString(file.authIndex ?? file.auth_index ?? file['auth-index'] ?? file.index);
 }
 
 export function getAccountLabel(file: AuthFileItem): string {

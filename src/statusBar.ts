@@ -1,25 +1,18 @@
-import { StatusBarAlignment, StatusBarItem, ThemeColor, window } from 'vscode';
+import { MarkdownString, StatusBarAlignment, StatusBarItem, ThemeColor, window } from 'vscode';
 import { getConfig } from './config';
 import { getProviderLabel } from './quotaService';
 import { ProviderQuotaSummary, QuotaSnapshot } from './types';
-import { formatPercent, formatRelativeReset } from './utils';
+import { average, formatDateTime, formatPercent } from './utils';
 
-const STATUS_PRIORITY = -10_000;
-const REFRESH_PRIORITY = STATUS_PRIORITY + 1;
+const STATUS_PRIORITY = 10_000;
 
 export class QuotaStatusBar {
   private item: StatusBarItem;
-  private refreshItem: StatusBarItem;
   private snapshot: QuotaSnapshot | null = null;
 
   constructor() {
-    this.refreshItem = window.createStatusBarItem(StatusBarAlignment.Left, REFRESH_PRIORITY);
-    this.refreshItem.text = '$(refresh)';
-    this.refreshItem.tooltip = '刷新 CPA 配额';
-    this.refreshItem.command = 'cpaQuota.refresh';
-
-    this.item = window.createStatusBarItem(StatusBarAlignment.Left, STATUS_PRIORITY);
-    this.item.command = 'cpaQuota.showDetails';
+    this.item = window.createStatusBarItem('cpaQuota.status', StatusBarAlignment.Right, STATUS_PRIORITY);
+    this.item.command = 'cpaQuota.refresh';
   }
 
   update(snapshot: QuotaSnapshot): void {
@@ -29,7 +22,6 @@ export class QuotaStatusBar {
       return;
     }
 
-    this.showRefreshButton();
     const visibleSummaries = snapshot.summaries.filter((summary) => summary.accountCount > 0);
     if (!visibleSummaries.length) {
       this.item.text = '$(circle-slash) CPA 配额';
@@ -39,10 +31,15 @@ export class QuotaStatusBar {
       return;
     }
 
-    this.item.text = visibleSummaries.map((summary) => this.formatSummaryText(summary)).join('  ');
+    this.item.text = this.formatTokenText(visibleSummaries);
     this.item.tooltip = this.buildTooltip(snapshot);
     this.item.color = undefined;
     this.item.show();
+    console.info('[cpaQuota] status bar updated', {
+      text: this.item.text,
+      accountCount: visibleSummaries.reduce((sum, summary) => sum + summary.accountCount, 0),
+      successfulAccountCount: visibleSummaries.reduce((sum, summary) => sum + summary.successfulAccountCount, 0)
+    });
   }
 
   showLoading(): void {
@@ -50,7 +47,6 @@ export class QuotaStatusBar {
       this.clear();
       return;
     }
-    this.showRefreshButton();
     this.item.text = '$(sync~spin) CPA 配额';
     this.item.tooltip = '正在刷新 Codex/Gemini/Claude 配额';
     this.item.color = undefined;
@@ -62,77 +58,89 @@ export class QuotaStatusBar {
       this.clear();
       return;
     }
-    this.showRefreshButton();
     this.item.text = '$(warning) CPA 配额';
     this.item.tooltip = message;
     this.item.color = new ThemeColor('statusBarItem.warningForeground');
     this.item.show();
   }
 
-  async showDetails(): Promise<void> {
-    if (!this.snapshot) {
-      window.showInformationMessage('CPA 配额尚未刷新。');
-      return;
-    }
-    const lines = this.snapshot.summaries.flatMap((summary) => this.buildDetailLines(summary));
-    await window.showInformationMessage(lines.join('\n'), { modal: true });
-  }
-
   clear(): void {
     this.item.hide();
-    this.refreshItem.hide();
   }
 
   dispose(): void {
     this.item.dispose();
-    this.refreshItem.dispose();
   }
 
-  private showRefreshButton(): void {
-    this.refreshItem.show();
+  private formatTokenText(summaries: ProviderQuotaSummary[]): string {
+    const hour = average(summaries.map((summary) => summary.hourRemainingPercent));
+    const week = average(summaries.map((summary) => summary.weekRemainingPercent));
+    return `Token: ${formatPercent(hour)}/5h ${formatPercent(week)}/1w`;
   }
 
-  private formatSummaryText(summary: ProviderQuotaSummary): string {
-    const label = getProviderLabel(summary.provider);
-    const accountText = summary.accountCount > 1 ? `(${summary.successfulAccountCount}/${summary.accountCount})` : '';
-    return `${label}${accountText} 周${formatPercent(summary.weekRemainingPercent)} 时${formatPercent(summary.hourRemainingPercent)}`;
-  }
-
-  private buildTooltip(snapshot: QuotaSnapshot): string {
+  private buildTooltip(snapshot: QuotaSnapshot): MarkdownString {
     const lines = [
-      'CPA 配额（剩余额度，多个账号取平均）',
-      `更新时间：${new Date(snapshot.fetchedAt).toLocaleString()}`
+      'CPA Token Quota',
+      `Updated: ${new Date(snapshot.fetchedAt).toLocaleString()}`
     ];
     snapshot.summaries.forEach((summary) => {
-      lines.push(...this.buildDetailLines(summary));
+      lines.push('', ...this.buildDetailLines(summary));
     });
-    return lines.join('\n');
+    const tooltip = new MarkdownString();
+    tooltip.appendCodeblock(lines.join('\n'), 'text');
+    return tooltip;
   }
 
   private buildDetailLines(summary: ProviderQuotaSummary): string[] {
     const label = getProviderLabel(summary.provider);
     if (!summary.accountCount) {
-      return [`${label}: 未找到账号`];
+      return [`${label}`, '  No accounts'];
     }
 
     const lines = [
-      `${label}: 账号 ${summary.successfulAccountCount}/${summary.accountCount}，周 ${formatPercent(summary.weekRemainingPercent)}，小时 ${formatPercent(summary.hourRemainingPercent)}`,
-      `  最近周配额重置：${formatRelativeReset(summary.nextWeekResetAt)}`,
-      `  最近小时配额重置：${formatRelativeReset(summary.nextHourResetAt)}`
+      `${label} (${summary.successfulAccountCount}/${summary.accountCount})`,
+      `  ${this.formatWindowLine('5h', summary.hourRemainingPercent, summary.nextHourResetAt)}`,
+      `  ${this.formatWindowLine('1w', summary.weekRemainingPercent, summary.nextWeekResetAt)}`
     ];
 
     summary.accounts.forEach((account) => {
       if (account.error) {
-        lines.push(`  ${account.name}: ${account.error}`);
+        lines.push(`  - ${account.name}: ${account.error}`);
         return;
       }
       const week = account.windows.find((window) => /周|week|7d/i.test(window.label)) ?? account.windows[1];
       const hour = account.windows.find((window) => /小时|hour|5h/i.test(window.label)) ?? account.windows[0];
-      lines.push(
-        `  ${account.name}: 周 ${formatPercent(week?.remainingPercent ?? null)} ${formatRelativeReset(week?.resetAt ?? null)}；小时 ${formatPercent(hour?.remainingPercent ?? null)} ${formatRelativeReset(hour?.resetAt ?? null)}`
-      );
+      lines.push(`  - ${account.name}`);
+      lines.push(`      ${this.formatWindowLine('5h', hour?.remainingPercent ?? null, hour?.resetAt ?? null)}`);
+      lines.push(`      ${this.formatWindowLine('1w', week?.remainingPercent ?? null, week?.resetAt ?? null)}`);
     });
 
     return lines;
+  }
+
+  private formatWindowLine(label: string, percent: number | null, resetAt: number | null): string {
+    const percentText = formatPercent(percent).padStart(4, ' ');
+    return `${label.padEnd(2, ' ')}  ${percentText}  reset ${this.formatReset(resetAt)}`;
+  }
+
+  private formatReset(timestamp: number | null): string {
+    if (!timestamp) {
+      return '--';
+    }
+    const diffMs = timestamp - Date.now();
+    if (diffMs <= 0) {
+      return formatDateTime(timestamp);
+    }
+    const totalMinutes = Math.ceil(diffMs / 60_000);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    if (days) {
+      return `${days}d ${hours}h`;
+    }
+    if (hours) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes || 1}m`;
   }
 }

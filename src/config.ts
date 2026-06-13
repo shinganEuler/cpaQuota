@@ -37,5 +37,5 @@ export function getVisibleProviders(): ProviderId[] {
 }
 
 export function getRefreshInterval(): number {
-  return Math.max(60_000, Math.floor(getConfig('interval', 3_600_000)));
+  return Math.max(1, Math.floor(getConfig('interval', 60))) * 60_000;
 }

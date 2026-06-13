@@ -1,8 +1,8 @@
 {
   "name": "cpa-quota-status-bar",
   "displayName": "CPA Quota Status Bar",
-  "description": "在 VS Code 状态栏显示 CPA Manager Plus 中 Codex、Gemini CLI、Claude Code 账号配额",
-  "version": "0.1.0",
+  "description": "Show Codex, Gemini CLI, and Claude Code quotas from CPA Manager Plus in the VS Code status bar",
+  "version": "0.1.1",
   "publisher": "shinganeuler",
   "license": "BSD-3-Clause",
   "repository": {
@@ -35,20 +35,15 @@
   },
   "activationEvents": [
     "onStartupFinished",
-    "onCommand:cpaQuota.refresh",
-    "onCommand:cpaQuota.showDetails"
+    "onCommand:cpaQuota.refresh"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "cpaQuota.refresh",
-        "title": "CPA Quota: 刷新配额",
+        "title": "CPA Quota: Refresh Quotas",
         "icon": "$(refresh)"
-      },
-      {
-        "command": "cpaQuota.showDetails",
-        "title": "CPA Quota: 显示重置时间"
       }
     ],
     "configuration": {
@@ -57,12 +52,12 @@
         "cpaQuota.managerBaseUrl": {
           "type": "string",
           "default": "http://localhost:8317",
-          "description": "CPA Manager Plus 或 CPA Management API 地址，例如 http://localhost:8317。"
+          "description": "CPA Manager Plus or CPA Management API base URL, for example http://localhost:8317."
         },
         "cpaQuota.managementKey": {
           "type": "string",
           "default": "",
-          "description": "CPA Manager Plus admin key 或 CPA Management Key，会作为 Bearer token 发送。"
+          "description": "CPA Manager Plus admin key or CPA Management Key. It is sent as Bearer and X-Management-Key headers."
         },
         "cpaQuota.providerVisibility": {
           "type": "object",
@@ -75,31 +70,31 @@
             "codex": {
               "type": "boolean",
               "default": true,
-              "description": "是否显示 Codex 配额。"
+              "description": "Show Codex quota."
             },
             "gemini": {
               "type": "boolean",
               "default": true,
-              "description": "是否显示 Gemini CLI 配额。"
+              "description": "Show Gemini CLI quota."
             },
             "claude": {
               "type": "boolean",
               "default": true,
-              "description": "是否显示 Claude Code 配额。"
+              "description": "Show Claude Code quota."
             }
           },
-          "description": "状态栏显示的厂商。"
+          "description": "Providers shown in the status bar."
         },
         "cpaQuota.interval": {
           "type": "number",
-          "default": 3600000,
-          "minimum": 60000,
-          "description": "配额刷新间隔，单位毫秒，默认 1 小时，最小 60000。"
+          "default": 60,
+          "minimum": 1,
+          "description": "Quota refresh interval in minutes. The default is 60 minutes and the minimum is 1 minute."
         },
         "cpaQuota.hideStatusBar": {
           "type": "boolean",
           "default": false,
-          "description": "是否隐藏 CPA 配额状态栏。"
+          "description": "Hide the CPA quota status bar."
         }
       }
     }

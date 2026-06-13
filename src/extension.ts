@@ -46,7 +46,6 @@ export async function activate(context: ExtensionContext): Promise<void> {
   context.subscriptions.push(
     statusBar,
     commands.registerCommand('cpaQuota.refresh', refresh),
-    commands.registerCommand('cpaQuota.showDetails', () => statusBar.showDetails()),
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(CONFIG_NAMESPACE)) {
         resetTimer();
