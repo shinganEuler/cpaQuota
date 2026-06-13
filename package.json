@@ -2,7 +2,7 @@
   "name": "cpa-quota-status-bar",
   "displayName": "CPA Quota Status Bar",
   "description": "Show Codex, Gemini CLI, and Claude Code quotas from CPA Manager Plus in the VS Code status bar",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "shinganeuler",
   "license": "BSD-3-Clause",
   "repository": {
