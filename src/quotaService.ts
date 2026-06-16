@@ -17,7 +17,8 @@ import {
   parseProviderQuota,
   PROVIDER_REQUESTS,
   selectHourWindow,
-  selectWeekWindow
+  selectWeekWindow,
+  shouldIncludeAuthFile
 } from './quotaParsers';
 
 export class QuotaService {
@@ -26,13 +27,10 @@ export class QuotaService {
     const visibleProviders = new Set(getVisibleProviders());
     const authFiles = await client.getAuthFiles();
     const allFiles = authFiles.files ?? [];
-    const files = allFiles.filter((file) => {
-      const provider = normalizeProvider(file);
-      return provider && visibleProviders.has(provider) && file.disabled !== true && file.unavailable !== true;
-    });
+    const files = allFiles.filter((file) => shouldIncludeAuthFile(file, visibleProviders));
 
     if (!files.length) {
-      console.info('[cpaQuota] auth-files loaded but no visible enabled provider accounts matched', {
+      console.info('[cpaQuota] auth-files loaded but no visible provider accounts matched', {
         total: allFiles.length,
         visibleProviders: Array.from(visibleProviders),
         sample: allFiles.slice(0, 5).map((file) => ({
@@ -62,6 +60,10 @@ export class QuotaService {
     const provider = normalizeProvider(file) as ProviderId;
     const authIndex = getAuthIndex(file);
     const name = getAccountLabel(file);
+    const status = {
+      disabled: file.disabled === true,
+      unavailable: file.unavailable === true
+    };
 
     if (!authIndex) {
       return {
@@ -69,6 +71,7 @@ export class QuotaService {
         name,
         authIndex: '',
         windows: [],
+        ...status,
         error: 'authIndex 为空'
       };
     }
@@ -89,6 +92,7 @@ export class QuotaService {
           name,
           authIndex,
           windows: [],
+          ...status,
           error: `HTTP ${result.statusCode} ${result.bodyText}`.trim()
         };
       }
@@ -98,6 +102,7 @@ export class QuotaService {
         provider,
         name,
         authIndex,
+        ...status,
         windows: windows.map((window) => ({
           ...window,
           resetLabel: formatDateTime(window.resetAt)
@@ -109,6 +114,7 @@ export class QuotaService {
         name,
         authIndex,
         windows: [],
+        ...status,
         error: error instanceof Error ? error.message : String(error)
       };
     }

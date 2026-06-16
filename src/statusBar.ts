@@ -104,18 +104,30 @@ export class QuotaStatusBar {
     ];
 
     summary.accounts.forEach((account) => {
+      const status = this.formatAccountStatus(account.disabled, account.unavailable);
       if (account.error) {
-        lines.push(`  - ${account.name}: ${account.error}`);
+        lines.push(`  - ${account.name}${status}: ${account.error}`);
         return;
       }
       const week = account.windows.find((window) => /周|week|7d/i.test(window.label)) ?? account.windows[1];
       const hour = account.windows.find((window) => /小时|hour|5h/i.test(window.label)) ?? account.windows[0];
-      lines.push(`  - ${account.name}`);
+      lines.push(`  - ${account.name}${status}`);
       lines.push(`      ${this.formatWindowLine('5h', hour?.remainingPercent ?? null, hour?.resetAt ?? null)}`);
       lines.push(`      ${this.formatWindowLine('1w', week?.remainingPercent ?? null, week?.resetAt ?? null)}`);
     });
 
     return lines;
+  }
+
+  private formatAccountStatus(disabled?: boolean, unavailable?: boolean): string {
+    const parts: string[] = [];
+    if (disabled) {
+      parts.push('disabled');
+    }
+    if (unavailable) {
+      parts.push('unavailable');
+    }
+    return parts.length ? ` [${parts.join(', ')}]` : '';
   }
 
   private formatWindowLine(label: string, percent: number | null, resetAt: number | null): string {

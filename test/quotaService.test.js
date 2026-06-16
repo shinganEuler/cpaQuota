@@ -1,10 +1,12 @@
 const assert = require('assert');
 const { normalizeAuthFilesResponse } = require('../out/authFiles');
-const { normalizeProvider, parseProviderQuota, selectHourWindow, selectWeekWindow } = require('../out/quotaParsers');
+const { normalizeProvider, parseProviderQuota, selectHourWindow, selectWeekWindow, shouldIncludeAuthFile } = require('../out/quotaParsers');
 
 assert.strictEqual(normalizeAuthFilesResponse([{ name: 'codex-auth.json' }]).files.length, 1);
 assert.strictEqual(normalizeAuthFilesResponse({ data: { items: [{ name: 'claude.json' }] } }).files.length, 1);
 assert.strictEqual(normalizeProvider({ name: 'gemini-cli-oauth.json' }), 'gemini');
+assert.strictEqual(shouldIncludeAuthFile({ name: 'codex-auth.json', disabled: true }, new Set(['codex'])), true);
+assert.strictEqual(shouldIncludeAuthFile({ name: 'claude.json', unavailable: true }, new Set(['claude'])), true);
 
 const codexWindows = parseProviderQuota('codex', {
   rate_limit: {

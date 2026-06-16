@@ -54,6 +54,8 @@ export interface AccountQuota {
   name: string;
   authIndex: string;
   windows: QuotaWindow[];
+  disabled?: boolean;
+  unavailable?: boolean;
   error?: string;
 }
 

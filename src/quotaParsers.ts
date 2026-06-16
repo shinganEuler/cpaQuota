@@ -70,6 +70,11 @@ export function normalizeProvider(file: AuthFileItem): ProviderId | null {
   return null;
 }
 
+export function shouldIncludeAuthFile(file: AuthFileItem, visibleProviders: Set<ProviderId>): boolean {
+  const provider = normalizeProvider(file);
+  return Boolean(provider && visibleProviders.has(provider));
+}
+
 export function getAuthIndex(file: AuthFileItem): string | null {
   return normalizeString(file.authIndex ?? file.auth_index ?? file['auth-index'] ?? file.index);
 }
