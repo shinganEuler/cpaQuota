@@ -11,6 +11,7 @@ import { average, formatDateTime, minTimestamp } from './utils';
 import {
   buildRequestData,
   buildRequestHeaders,
+  getEffectiveHourRemainingPercent,
   getAccountLabel,
   getAuthIndex,
   normalizeProvider,
@@ -122,7 +123,6 @@ export class QuotaService {
 
   private buildProviderSummary(provider: ProviderId, accounts: AccountQuota[]): ProviderQuotaSummary {
     const successful = accounts.filter((account) => !account.error && account.windows.length);
-    const hourWindows = successful.map(selectHourWindow);
     const weekWindows = successful.map(selectWeekWindow);
 
     return {
@@ -131,9 +131,9 @@ export class QuotaService {
       accountCount: accounts.length,
       successfulAccountCount: successful.length,
       weekRemainingPercent: average(weekWindows.map((window) => window?.remainingPercent ?? null)),
-      hourRemainingPercent: average(hourWindows.map((window) => window?.remainingPercent ?? null)),
+      hourRemainingPercent: average(successful.map(getEffectiveHourRemainingPercent)),
       nextWeekResetAt: minTimestamp(weekWindows.map((window) => window?.resetAt ?? null)),
-      nextHourResetAt: minTimestamp(hourWindows.map((window) => window?.resetAt ?? null)),
+      nextHourResetAt: minTimestamp(successful.map((account) => selectHourWindow(account)?.resetAt ?? null)),
       errorCount: accounts.length - successful.length,
       fetchedAt: Date.now()
     };

@@ -1,5 +1,6 @@
 import { MarkdownString, StatusBarAlignment, StatusBarItem, ThemeColor, window } from 'vscode';
 import { getConfig } from './config';
+import { getEffectiveHourRemainingPercent, selectHourWindow, selectWeekWindow } from './quotaParsers';
 import { getProviderLabel } from './quotaService';
 import { ProviderQuotaSummary, QuotaSnapshot } from './types';
 import { average, formatDateTime, formatPercent } from './utils';
@@ -109,10 +110,10 @@ export class QuotaStatusBar {
         lines.push(`  - ${account.name}${status}: ${account.error}`);
         return;
       }
-      const week = account.windows.find((window) => /周|week|7d/i.test(window.label)) ?? account.windows[1];
-      const hour = account.windows.find((window) => /小时|hour|5h/i.test(window.label)) ?? account.windows[0];
+      const week = selectWeekWindow(account);
+      const hour = selectHourWindow(account);
       lines.push(`  - ${account.name}${status}`);
-      lines.push(`      ${this.formatWindowLine('5h', hour?.remainingPercent ?? null, hour?.resetAt ?? null)}`);
+      lines.push(`      ${this.formatWindowLine('5h', getEffectiveHourRemainingPercent(account), hour?.resetAt ?? null)}`);
       lines.push(`      ${this.formatWindowLine('1w', week?.remainingPercent ?? null, week?.resetAt ?? null)}`);
     });
 

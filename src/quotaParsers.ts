@@ -232,6 +232,14 @@ export function selectWeekWindow(account: AccountQuota): QuotaWindow | null {
   return selectWindow(account.windows, 'week');
 }
 
+export function getEffectiveHourRemainingPercent(account: AccountQuota): number | null {
+  const weekWindow = selectWeekWindow(account);
+  if (weekWindow?.remainingPercent === 0) {
+    return 0;
+  }
+  return selectHourWindow(account)?.remainingPercent ?? null;
+}
+
 function selectWindow(windows: QuotaWindow[], kind: 'hour' | 'week'): QuotaWindow | null {
   const expected = kind === 'hour' ? 18_000 : 604_800;
   const bySeconds = windows.find((window) => window.windowSeconds === expected);

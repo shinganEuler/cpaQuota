@@ -1,6 +1,6 @@
 const assert = require('assert');
 const { normalizeAuthFilesResponse } = require('../out/authFiles');
-const { normalizeProvider, parseProviderQuota, selectHourWindow, selectWeekWindow, shouldIncludeAuthFile } = require('../out/quotaParsers');
+const { getEffectiveHourRemainingPercent, normalizeProvider, parseProviderQuota, selectHourWindow, selectWeekWindow, shouldIncludeAuthFile } = require('../out/quotaParsers');
 
 assert.strictEqual(normalizeAuthFilesResponse([{ name: 'codex-auth.json' }]).files.length, 1);
 assert.strictEqual(normalizeAuthFilesResponse({ data: { items: [{ name: 'claude.json' }] } }).files.length, 1);
@@ -25,6 +25,24 @@ const codexWindows = parseProviderQuota('codex', {
 
 assert.strictEqual(selectHourWindow({ windows: codexWindows }).remainingPercent, 75);
 assert.strictEqual(selectWeekWindow({ windows: codexWindows }).remainingPercent, 60);
+
+const weeklyExhaustedWindows = parseProviderQuota('codex', {
+  rate_limit: {
+    primary_window: {
+      used_percent: 10,
+      limit_window_seconds: 18000,
+      reset_after_seconds: 3600
+    },
+    secondary_window: {
+      used_percent: 100,
+      limit_window_seconds: 604800,
+      reset_after_seconds: 7200
+    }
+  }
+});
+
+assert.strictEqual(selectHourWindow({ windows: weeklyExhaustedWindows }).remainingPercent, 90);
+assert.strictEqual(getEffectiveHourRemainingPercent({ windows: weeklyExhaustedWindows }), 0);
 
 const geminiWindows = parseProviderQuota('gemini', {
   buckets: [
